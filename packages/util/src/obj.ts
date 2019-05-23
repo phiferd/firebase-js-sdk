@@ -43,7 +43,7 @@ export function forEach<T extends object>(
   obj: T,
   fn: (key: Keys<T>, value: Values<T>) => void
 ) {
-  for (var key of Object.keys(obj)) {
+  for (const key of Object.keys(obj)) {
     // Object.keys() doesn't return an Array<keyof T>
     // https://github.com/microsoft/TypeScript/pull/12253#issuecomment-263132208
     fn(key as Keys<T>, obj[key]);
@@ -77,7 +77,12 @@ export function isNonNullObject(obj: unknown): obj is object {
 }
 
 export function isEmpty(obj: object): obj is {} {
-  return Object.keys(obj).length === 0;
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 export function getCount(obj: object): number {
@@ -89,8 +94,8 @@ export function map<T extends object, V, U extends { [key in keyof T]: V }>(
   fn: (value: Values<T>, key: Keys<T>, obj: T) => V,
   opt_obj?: unknown
 ): U {
-  var res: Partial<U> = {};
-  for (var [key, value] of Object.entries(obj)) {
+  const res: Partial<U> = {};
+  for (const [key, value] of Object.entries(obj)) {
     res[key] = fn.call(opt_obj, value, key, obj);
   }
   return res as U;
@@ -101,7 +106,7 @@ export function findKey<T extends object>(
   fn: <K extends Keys<T>>(value: T[K], key: K, obj: T) => boolean,
   opt_this?: unknown
 ): keyof T | undefined {
-  for (var [key, value] of Object.entries(obj)) {
+  for (const [key, value] of Object.entries(obj)) {
     if (fn.call(opt_this, value, key, obj)) {
       return key as keyof T;
     }
@@ -114,21 +119,17 @@ export function findValue<T extends object>(
   fn: (value: Values<T>, key: Keys<T>, obj: T) => boolean,
   opt_this?: unknown
 ): Values<T> | undefined {
-  var key = findKey(obj, fn, opt_this);
+  const key = findKey(obj, fn, opt_this);
   return key && obj[key];
 }
 
 export function getAnyKey<T extends object>(obj: T): keyof T | undefined {
-  const keys = Object.keys(obj);
-  if (keys.length > 0) {
-    return keys[0] as keyof T;
-  } else {
-    return undefined;
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      return key;
+    }
   }
-}
-
-export function getValues<T extends object>(obj: T): Array<Values<T>> {
-  return Object.values(obj);
+  return undefined;
 }
 
 /**
@@ -142,7 +143,7 @@ export function every<T extends object>(
   obj: T,
   fn: (key: Keys<T>, value: Values<T>) => boolean
 ): boolean {
-  for (var [key, value] of Object.entries(obj)) {
+  for (const [key, value] of Object.entries(obj)) {
     if (!fn(key as Keys<T>, value)) {
       return false;
     }
