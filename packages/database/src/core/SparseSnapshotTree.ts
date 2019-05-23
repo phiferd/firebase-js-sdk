@@ -17,7 +17,6 @@
 
 import { Path } from './util/Path';
 import { PRIORITY_INDEX } from './snap/indexes/PriorityIndex';
-import { CountedSet } from './util/CountedSet';
 import { Node } from './snap/Node';
 
 /**
@@ -34,9 +33,8 @@ export class SparseSnapshotTree {
 
   /**
    * @private
-   * @type {CountedSet}
    */
-  private children_: CountedSet<string, SparseSnapshotTree> | null = null;
+  private children_: Map<string, SparseSnapshotTree> | null = null;
 
   /**
    * Gets the node stored at the given path if one exists.
@@ -50,8 +48,8 @@ export class SparseSnapshotTree {
     } else if (!path.isEmpty() && this.children_ != null) {
       const childKey = path.getFront();
       path = path.popFront();
-      if (this.children_.contains(childKey)) {
-        const childTree = this.children_.get(childKey) as SparseSnapshotTree;
+      if (this.children_.has(childKey)) {
+        const childTree = this.children_.get(childKey);
         return childTree.find(path);
       } else {
         return null;
@@ -76,12 +74,12 @@ export class SparseSnapshotTree {
       this.value_ = this.value_.updateChild(path, data);
     } else {
       if (this.children_ == null) {
-        this.children_ = new CountedSet<string, SparseSnapshotTree>();
+        this.children_ = new Map<string, SparseSnapshotTree>();
       }
 
       const childKey = path.getFront();
-      if (!this.children_.contains(childKey)) {
-        this.children_.add(childKey, new SparseSnapshotTree());
+      if (!this.children_.has(childKey)) {
+        this.children_.set(childKey, new SparseSnapshotTree());
       }
 
       const child = this.children_.get(childKey) as SparseSnapshotTree;
@@ -120,16 +118,16 @@ export class SparseSnapshotTree {
       } else if (this.children_ !== null) {
         const childKey = path.getFront();
         path = path.popFront();
-        if (this.children_.contains(childKey)) {
+        if (this.children_.has(childKey)) {
           const safeToRemove = (this.children_.get(
             childKey
           ) as SparseSnapshotTree).forget(path);
           if (safeToRemove) {
-            this.children_.remove(childKey);
+            this.children_.delete(childKey);
           }
         }
 
-        if (this.children_.isEmpty()) {
+        if (this.children_.size === 0) {
           this.children_ = null;
           return true;
         } else {
@@ -166,7 +164,7 @@ export class SparseSnapshotTree {
    */
   forEachChild(func: (a: string, b: SparseSnapshotTree) => void) {
     if (this.children_ !== null) {
-      this.children_.each((key, tree) => {
+      this.children_.forEach((tree, key) => {
         func(key, tree);
       });
     }
